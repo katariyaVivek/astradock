@@ -1,0 +1,20 @@
+# CMake build trees and generated files
+build/
+cmake-build-*/
+CMakeUserPresets.json
+compile_commands.json
+artifacts/
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
