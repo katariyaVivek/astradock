@@ -128,4 +128,55 @@ inline void require_valid_orbital_state(const CartesianState& state) {
     return period_s;
 }
 
+// Reusable collection of analytical reference values derived from physical constants.
+// This structure eliminates magic numbers across demos, tests, and validation tools.
+struct CircularOrbitReference {
+    double orbital_radius_m;
+    double speed_m_per_s;
+    double period_s;
+    double specific_energy_m2_per_s2;
+    double specific_angular_momentum_m2_per_s;
+    double gravitational_parameter_m3_per_s2;
+    double mean_motion_rad_per_s;
+    double gravitational_acceleration_m_per_s2;
+};
+
+[[nodiscard]] inline CircularOrbitReference compute_circular_orbit_reference(
+    double gravitational_parameter_m3_per_s2,
+    double orbital_radius_m) {
+    detail::require_positive_finite(
+        gravitational_parameter_m3_per_s2,
+        "Circular-orbit reference: gravitational parameter must be finite and positive");
+    detail::require_positive_finite(
+        orbital_radius_m,
+        "Circular-orbit reference: orbital radius must be finite and positive");
+
+    const double speed = circular_orbit_speed_m_per_s(
+        gravitational_parameter_m3_per_s2, orbital_radius_m);
+    const double period = circular_orbit_period_s(
+        gravitational_parameter_m3_per_s2, orbital_radius_m);
+    const CartesianState state{
+        {orbital_radius_m, 0.0, 0.0},
+        {0.0, speed, 0.0},
+    };
+    const double energy = specific_orbital_energy_m2_per_s2(
+        state, gravitational_parameter_m3_per_s2);
+    const double h = specific_angular_momentum_m2_per_s(state).norm();
+    const double mean_motion = std::sqrt(
+        gravitational_parameter_m3_per_s2 / (orbital_radius_m * orbital_radius_m * orbital_radius_m));
+    const double g_accel = gravitational_parameter_m3_per_s2 / (orbital_radius_m * orbital_radius_m);
+
+    return {
+        orbital_radius_m,
+        speed,
+        period,
+        energy,
+        h,
+        gravitational_parameter_m3_per_s2,
+        mean_motion,
+        g_accel,
+    };
+}
+
 }  // namespace astradock::orbit
+

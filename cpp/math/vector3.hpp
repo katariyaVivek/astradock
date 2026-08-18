@@ -94,4 +94,8 @@ private:
         && approximately_equal(lhs.z(), rhs.z(), absolute_tolerance, relative_tolerance);
 }
 
+[[nodiscard]] inline bool is_finite(const Vector3& vector) noexcept {
+    return std::isfinite(vector.x()) && std::isfinite(vector.y()) && std::isfinite(vector.z());
+}
+
 }  // namespace astradock::math

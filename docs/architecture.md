@@ -15,46 +15,71 @@ helpers, CSV demonstration, and Python plotting layer.
 ```text
 C++ simulation core
 
-Vector3 + Earth constants
+Vector3 / Matrix3 / Quaternion / EulerAngles + Constants
           |
           +--> two_body_acceleration
           |             |
 CartesianState -------->+--> two_body_state_derivative
-                                      |
-Euler / RK4 --------------------------+
-          |
-          v
-propagate_fixed_step
-          |
-          v
-time-stamped Cartesian trajectory
-          |
-          +--> energy / angular-momentum diagnostics
-          |
-          v
-astradock_orbit_demo --> deterministic CSV
-                                  |
-                                  v
-Python analysis            plot_orbit.py --> PNG figures
+     ^                                |
+     | Euler / RK4 -------------------+
+     |        |
+     |        v
+     |   propagate_fixed_step
+     |        |
+     |        v
+     |   time-stamped Cartesian trajectory
+     |        |
+     |        +--> energy / angular-momentum diagnostics
+     |        +--> phase error, period estimation, convergence order
+     |        +--> LVLH FrameBasis & DCMs (AstraDock::frames)
+     |        +--> ClassicalOrbitalElements & Perifocal PQW (AstraDock::orbit)
+     |        +--> AttitudeState & Quaternion Rotations (AstraDock::attitude)
+     |
+     v
+astradock_orbit_demo --------> deterministic trajectory CSV
+astradock_validation_demo ---> convergence CSV + QA
+astradock_frame_demo --------> coordinate frames CSV + QA
+astradock_elements_demo -----> orbital elements propagation CSV + QA
+astradock_attitude_demo -----> attitude rotation telemetry CSV + QA
+                                    |
+                                    v
+Python analysis            plot_orbit.py -----------> trajectory PNG figures
+                           plot_validation.py ------> convergence plots
+                           plot_frames.py ----------> coordinate frame plots
+                           plot_orbital_elements.py -> 3D orbital geometry & element evolution
+                           plot_attitude.py --------> 3D body frame, quaternion/DCM & composition
+
+Frame & Attitude Hierarchy:
+ECI Frame (Inertial Reference)
+ │
+ ├── Orbital State (Cartesian r, v / Classical Elements a, e, i, Ω, ω, ν)
+ │
+ └── LVLH Frame (Orbital Local)
+       │
+       └── Spacecraft Attitude (Quaternion q_ECI_Body or q_LVLH_Body)
+              │
+              ▼
+          SPACECRAFT BODY FRAME (Static orientation representation; dynamics scheduled for M09)
 ```
 
-`AstraDock::math`, `AstraDock::dynamics`, `AstraDock::numerics`, and
-`AstraDock::orbit` are header-only CMake interface targets requiring C++20.
-Orbit depends on dynamics and numerics; dynamics and numerics each depend on
-math. The `astradock_orbit_demo` executable links only the C++ core and exports
-plain CSV. CTest owns test execution, while Catch2 provides test cases and
-assertions.
+`AstraDock::math`, `AstraDock::dynamics`, `AstraDock::numerics`, `AstraDock::orbit`,
+`AstraDock::frames`, and `AstraDock::attitude` are header-only CMake interface targets requiring C++20.
+Orbit depends on dynamics, numerics, and math; dynamics, numerics, frames, and attitude each depend on
+math. Demo executables link the C++ core and export plain CSV. CTest owns test execution,
+while Catch2 provides test cases and assertions.
 
 | Area | Current responsibility | Current non-responsibility |
 | --- | --- | --- |
-| `cpp/math` | General double-precision vector operations and minimal mathematical/Earth constants | Frames, unit types, matrices, dynamics |
+| `cpp/math` | General double-precision `Vector3`, `Matrix3`, `Quaternion`, `EulerAngles` (ZYX), arithmetic, transpose, determinant, Shepperd DCM $\leftrightarrow$ quaternion conversion, angle normalization, and constants | Frames, unit types, dynamics |
 | `cpp/dynamics` | Instantaneous point-mass central gravitational acceleration | Time integration, orbit propagation, perturbations |
 | `cpp/numerics` | Generic Euler/RK4 steps plus deterministic signed fixed-step propagation and endpoint policy | Physical derivative assembly, adaptive steps, events |
-| `cpp/orbit` | Cartesian orbital state, two-body derivative assembly, circular-orbit helpers, and invariants | Frame transforms, perturbations, orbital elements |
-| `tools` | Nominal 500 km C++ scenario, quantitative summaries, and deterministic CSV export | General scenario or telemetry framework |
-| `python/analysis` | Plotting and display-unit conversion from authoritative C++ CSV | Gravity, integration, or independent propagation |
-| `tests/cpp` | Deterministic analytical, invariant, ODE convergence, endpoint, and orbit scenario tests | Higher-fidelity external reference validation |
-| `docs` | Architecture, curriculum, and concept lessons | Claims of unimplemented behavior |
+| `cpp/orbit` | Cartesian orbital state, two-body derivative assembly, circular-orbit helpers, invariants, validation diagnostics, `ClassicalOrbitalElements`, perifocal coordinate frame ($PQW$), and bidirectional state $\leftrightarrow$ elements conversions | Perturbations ($J_2$, drag), equinoctial elements |
+| `cpp/frames` | Orthonormal `FrameBasis`, LVLH basis construction, Direction Cosine Matrices (`dcm_lvlh_from_eci`, `dcm_eci_from_lvlh`), vector coordinate transformations, and degenerate-state rejection | ECEF, Earth rotation, attitude dynamics |
+| `cpp/attitude` | `AttitudeState` representation (spatial orientation of spacecraft body frame via unit quaternion) | Quaternion time integration, angular rates, inertia tensor, torques |
+| `tools` | Nominal scenarios, quantitative summaries, deterministic CSV export, validation sweeps, frame demonstrations, elements demos, and attitude demos | General scenario or telemetry framework |
+| `python/analysis` | Plotting, display-unit conversion, convergence analysis, frame visualizations, 3D orbital geometry, and 3D attitude figures from authoritative C++ CSV | Authority over physics or integration |
+| `tests/cpp` | Deterministic analytical, invariant, ODE convergence, endpoint, orbit scenario, regression, matrix algebra, coordinate frame, audit property, classical element, and quaternion attitude tests | Higher-fidelity external reference validation |
+| `docs` | Architecture, curriculum, concept lessons, and numerical validation reports | Claims of unimplemented behavior |
 | `pyproject.toml` | Python 3.12+ tooling and optional Matplotlib analysis dependency | Python simulation physics |
 
 ## C++ simulation core and Python analysis
@@ -113,30 +138,40 @@ Internal physical quantities use SI units: metres, seconds, kilograms, radians,
 newtons, and derived SI units. Human-facing plots may convert units if labels
 make the conversion explicit.
 
-`Vector3` intentionally represents only three numeric components. The meaning
-must be supplied by its containing type, variable name, or function contract.
-For example, `position_eci_m` and `force_body_n` may both use `Vector3`, but they
-cannot be added because they have different dimensions and frames. Planned
-frame transforms will be explicit functions with documented conventions,
-inverse tests, and round-trip tests.
+`Vector3` and `Matrix3` intentionally represent generic numeric components. The
+physical meaning and coordinate system must be supplied by the containing type,
+variable name, or function contract. For example, `position_eci_m` and
+`position_lvlh_m` both use `Vector3`, but cannot be added directly without an
+explicit frame transformation.
 
-The M02 gravity API names its position as central-body-centered inertial and
-uses metres, m^3/s^2, and m/s^2 for position, gravitational parameter, and
-acceleration. For Earth this is conceptually ECI, but no concrete ECI definition
-or frame transformation is implemented yet.
+### Coordinate Frame Hierarchy
 
-The M03 integration APIs are frame-neutral and unit-neutral. The caller owns
-those meanings: when time is measured in seconds, the derivative must use
-state-units per second. Finite positive and negative steps are supported, while
-a zero step is an identity operation. The integrators validate finite time and
-the known `double`/`Vector3` values but do not choose a physical timestep or
-error budget for the caller.
+```text
+                     ECI (Earth-Centered Inertial)
+                                  │
+                                  │ orbital state (r, v)
+                                  ▼
+                   LVLH (Local Vertical Local Horizontal)
+                                  │
+                                  │ PLANNED (future attitude milestones)
+                                  ▼
+                   Spacecraft Body Frame (PLANNED)
+```
 
-M04's `CartesianState` uses position in metres and velocity in m/s in an
-idealized Earth-centered inertial Cartesian frame. The derivative's same-shaped
-slots represent m/s and m/s^2. Propagation time is seconds. Specific energy and
-angular momentum use m^2/s^2 and m^2/s. No operational ECI definition, epoch,
-Earth rotation, or coordinate transformation is implemented.
+- **ECI:** Idealized non-rotating Cartesian coordinate frame with origin at Earth's
+  center of mass, equatorial fundamental plane, and $+Z_{ECI}$ pointing toward the north
+  celestial pole.
+- **LVLH:** Spacecraft orbital-local frame where $+X$ points radially outward ($\mathbf{e}_r = \mathbf{r}/\|\mathbf{r}\|$),
+  $+Z$ points normal to the orbital plane ($\mathbf{e}_h = \mathbf{h}/\|\mathbf{h}\|$), and $+Y$ completes the
+  right-handed triad along-track ($\mathbf{e}_t = \mathbf{e}_h \times \mathbf{e}_r$).
+- **Spacecraft Body Frame:** Planned for attitude dynamics and sensor alignment in M07–M09.
+
+### DCM Convention
+
+Direction Cosine Matrices follow the explicit convention $C_{A\_B}$ (or `dcm_a_from_b`):
+$$\mathbf{v}_A = C_{A\_B} \cdot \mathbf{v}_B$$
+- $C_{LVLH\_ECI}$: Transforms ECI coordinates to LVLH coordinates; its **rows** are the LVLH basis vectors expressed in ECI.
+- $C_{ECI\_LVLH} = C_{LVLH\_ECI}^T$: Transforms LVLH coordinates to ECI coordinates; its **columns** are the LVLH basis vectors expressed in ECI.
 
 ## Planned subsystem architecture
 
@@ -181,8 +216,15 @@ The M04 suite adds Cartesian state algebra, derivative assembly against the
 canonical gravity function, exact/shortened/zero/backward endpoint behavior,
 invalid propagation parameters, short-duration sanity, analytical one-period
 closure, radius stability, energy and angular-momentum conservation, and a
-five-orbit Euler/RK4 drift comparison. Plot generation is checked separately
-from core numerical unit tests.
+five-orbit Euler/RK4 drift comparison.
+
+The M05 suite adds phase diagnostics (angle, analytical, unwrapped), period
+estimation from trajectory crossings, empirical convergence-order measurement,
+angular-momentum direction drift, repeatability checks, regression baselines
+against M04 values, circular-orbit radius/speed sanity, and timestep-sensitivity
+tests for both Euler and RK4.
+
+Plot generation is checked separately from core numerical unit tests.
 
 ## Current assumptions and limitations
 
@@ -199,3 +241,6 @@ from core numerical unit tests.
   perturbation model, attitude state, concurrency, or external astrodynamics
   dependency.
 - Catch2 is a test-only dependency and is not part of the simulation API.
+- The M05 validation suite confirms RK4 demonstrates approximately fourth-order
+  convergence on the two-body orbital problem, and that the propagator is
+  deterministic and repeatable.

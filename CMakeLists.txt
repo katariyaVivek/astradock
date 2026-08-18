@@ -37,14 +37,88 @@ target_link_libraries(
         AstraDock::numerics
 )
 
+add_library(astradock_frames INTERFACE)
+add_library(AstraDock::frames ALIAS astradock_frames)
+target_link_libraries(astradock_frames INTERFACE AstraDock::math)
+
+add_library(astradock_attitude INTERFACE)
+add_library(AstraDock::attitude ALIAS astradock_attitude)
+target_link_libraries(astradock_attitude INTERFACE AstraDock::math)
+
 add_executable(astradock_orbit_demo tools/orbit_demo.cpp)
 target_link_libraries(astradock_orbit_demo PRIVATE AstraDock::orbit)
 
+add_executable(astradock_validation_demo tools/validation_demo.cpp)
+target_link_libraries(astradock_validation_demo PRIVATE AstraDock::orbit)
+
+add_executable(astradock_frame_demo tools/frame_demo.cpp)
+target_link_libraries(
+    astradock_frame_demo
+    PRIVATE
+        AstraDock::frames
+        AstraDock::orbit
+)
+
+add_executable(astradock_elements_demo tools/orbital_elements_demo.cpp)
+target_link_libraries(
+    astradock_elements_demo
+    PRIVATE
+        AstraDock::orbit
+)
+
+add_executable(astradock_attitude_demo tools/attitude_demo.cpp)
+target_link_libraries(
+    astradock_attitude_demo
+    PRIVATE
+        AstraDock::attitude
+        AstraDock::frames
+)
+
 if(MSVC)
     target_compile_options(astradock_orbit_demo PRIVATE /W4 /permissive-)
+    target_compile_options(astradock_validation_demo PRIVATE /W4 /permissive-)
+    target_compile_options(astradock_frame_demo PRIVATE /W4 /permissive-)
+    target_compile_options(astradock_elements_demo PRIVATE /W4 /permissive-)
+    target_compile_options(astradock_attitude_demo PRIVATE /W4 /permissive-)
 else()
     target_compile_options(
         astradock_orbit_demo
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wconversion
+            -Wsign-conversion
+    )
+    target_compile_options(
+        astradock_validation_demo
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wconversion
+            -Wsign-conversion
+    )
+    target_compile_options(
+        astradock_frame_demo
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wconversion
+            -Wsign-conversion
+    )
+    target_compile_options(
+        astradock_elements_demo
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wconversion
+            -Wsign-conversion
+    )
+    target_compile_options(
+        astradock_attitude_demo
         PRIVATE
             -Wall
             -Wextra
@@ -103,11 +177,68 @@ if(BUILD_TESTING)
             Catch2::Catch2WithMain
     )
 
+    add_executable(astradock_validation_tests tests/cpp/test_validation.cpp)
+    target_link_libraries(
+        astradock_validation_tests
+        PRIVATE
+            AstraDock::orbit
+            Catch2::Catch2WithMain
+    )
+
+    add_executable(astradock_matrix3_tests tests/cpp/test_matrix3.cpp)
+    target_link_libraries(
+        astradock_matrix3_tests
+        PRIVATE
+            AstraDock::math
+            Catch2::Catch2WithMain
+    )
+
+    add_executable(astradock_frame_tests tests/cpp/test_coordinate_frames.cpp)
+    target_link_libraries(
+        astradock_frame_tests
+        PRIVATE
+            AstraDock::frames
+            AstraDock::orbit
+            Catch2::Catch2WithMain
+    )
+
+    add_executable(astradock_audit_tests tests/cpp/test_m01_m06_audit.cpp)
+    target_link_libraries(
+        astradock_audit_tests
+        PRIVATE
+            AstraDock::frames
+            AstraDock::orbit
+            Catch2::Catch2WithMain
+    )
+
+    add_executable(astradock_elements_tests tests/cpp/test_classical_elements.cpp)
+    target_link_libraries(
+        astradock_elements_tests
+        PRIVATE
+            AstraDock::orbit
+            Catch2::Catch2WithMain
+    )
+
+    add_executable(astradock_quaternion_tests tests/cpp/test_quaternion.cpp)
+    target_link_libraries(
+        astradock_quaternion_tests
+        PRIVATE
+            AstraDock::attitude
+            AstraDock::frames
+            Catch2::Catch2WithMain
+    )
+
     if(MSVC)
         target_compile_options(astradock_vector3_tests PRIVATE /W4 /permissive-)
         target_compile_options(astradock_two_body_tests PRIVATE /W4 /permissive-)
         target_compile_options(astradock_integrator_tests PRIVATE /W4 /permissive-)
         target_compile_options(astradock_orbit_tests PRIVATE /W4 /permissive-)
+        target_compile_options(astradock_validation_tests PRIVATE /W4 /permissive-)
+        target_compile_options(astradock_matrix3_tests PRIVATE /W4 /permissive-)
+        target_compile_options(astradock_frame_tests PRIVATE /W4 /permissive-)
+        target_compile_options(astradock_audit_tests PRIVATE /W4 /permissive-)
+        target_compile_options(astradock_elements_tests PRIVATE /W4 /permissive-)
+        target_compile_options(astradock_quaternion_tests PRIVATE /W4 /permissive-)
     else()
         target_compile_options(
             astradock_vector3_tests
@@ -145,6 +276,60 @@ if(BUILD_TESTING)
                 -Wconversion
                 -Wsign-conversion
         )
+        target_compile_options(
+            astradock_validation_tests
+            PRIVATE
+                -Wall
+                -Wextra
+                -Wpedantic
+                -Wconversion
+                -Wsign-conversion
+        )
+        target_compile_options(
+            astradock_matrix3_tests
+            PRIVATE
+                -Wall
+                -Wextra
+                -Wpedantic
+                -Wconversion
+                -Wsign-conversion
+        )
+        target_compile_options(
+            astradock_frame_tests
+            PRIVATE
+                -Wall
+                -Wextra
+                -Wpedantic
+                -Wconversion
+                -Wsign-conversion
+        )
+        target_compile_options(
+            astradock_audit_tests
+            PRIVATE
+                -Wall
+                -Wextra
+                -Wpedantic
+                -Wconversion
+                -Wsign-conversion
+        )
+        target_compile_options(
+            astradock_elements_tests
+            PRIVATE
+                -Wall
+                -Wextra
+                -Wpedantic
+                -Wconversion
+                -Wsign-conversion
+        )
+        target_compile_options(
+            astradock_quaternion_tests
+            PRIVATE
+                -Wall
+                -Wextra
+                -Wpedantic
+                -Wconversion
+                -Wsign-conversion
+        )
     endif()
 
     include(Catch)
@@ -152,4 +337,10 @@ if(BUILD_TESTING)
     catch_discover_tests(astradock_two_body_tests)
     catch_discover_tests(astradock_integrator_tests)
     catch_discover_tests(astradock_orbit_tests)
+    catch_discover_tests(astradock_validation_tests)
+    catch_discover_tests(astradock_matrix3_tests)
+    catch_discover_tests(astradock_frame_tests)
+    catch_discover_tests(astradock_audit_tests)
+    catch_discover_tests(astradock_elements_tests)
+    catch_discover_tests(astradock_quaternion_tests)
 endif()
