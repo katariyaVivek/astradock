@@ -18,48 +18,24 @@ learning is attempted.
 
 | M07 Classical orbital elements | Keplerian elements ($a, e, i, \Omega, \omega, \nu$), perifocal frame ($PQW$), bidirectional state $\leftrightarrow$ elements conversion, angle normalization, and singularity policies. | Lesson 007, `ClassicalOrbitalElements`, `astradock_elements_demo`, 7 C++ unit tests, 3D orbit geometry/evolution plots, and an M07 validation report. |
 | M08 Quaternions & attitude representation | Attitude conventions, scalar-first quaternion, Hamilton product, vector rotation, DCM $\leftrightarrow$ quaternion conversion (Shepperd algorithm), double cover, gimbal lock. | Lesson 008, `Quaternion`, `EulerAngles`, `AttitudeState`, `astradock_attitude_demo`, 9 C++ unit tests, 3 attitude plots, and an M08 validation report. |
-| M09 Attitude propagation & kinematics | Quaternion kinematics ($\dot{q} = \frac{1}{2} q \otimes \omega$), angular-rate frames, integration and renormalization. | Constant-rate analytical comparison. |
-| M10 Rigid-body dynamics | Torque, inertia, Euler equations, rotational energy and angular momentum, tumbling. | Verified torque-free and forced rotation scenarios. |
-| M11 Sensor models | Sampling, white noise, bias, drift, dropout, calibration, seeded randomness. | Lesson on sensors and measurement-statistics tests. |
-| M12 Linear Kalman filter | State/covariance prediction, innovation, process and measurement noise, Kalman gain. | Lesson and truth/measurement/estimate plots. |
-| M13 Extended Kalman filter | Nonlinear models, Jacobians, linearization, conditioning, covariance consistency. | Lesson and Jacobian/nonlinear tests. |
-| M14 Attitude estimation | Quaternion error, gyro bias estimation, multi-rate fusion, attitude error metrics. | Sensor-fusion scenarios and error analysis. |
-| M15 Second spacecraft & relative motion | Ownership of target/chaser states, relative initial conditions, Hill/LVLH relative state, Clohessy-Wiltshire equations. | Lesson and analytical relative-motion checks. |
-| M16 Rendezvous guidance | Guidance references, hold points, approach profiles, closing-rate and path constraints. | Safe reference trajectories through staged distances. |
-| M17 Translational control | Force, mass, acceleration, impulse, saturation and tracking error. | Bounded-thrust tracking tests. |
-| M18 Attitude control | PID, LQR, stability, tuning, actuator bounds, settling time. | Detumble and pointing tracking plots. |
-| M19 Docking corridor | Approach axis, keep-out zones, corridor geometry, safety margins and abort maneuvers. | Boundary tests and visualized safety geometry. |
-| M20 Mission state machine | Modes, guarded transitions, safety interlocks, degraded operation and abort priority. | Nominal and faulted transition tests. |
-| M21 Virtual camera | Camera/sensor frames, intrinsics, extrinsics, perspective projection, FOV and clipping. | Synthetic observations with analytical pixel checks. |
-| M22 Classical visual pose estimation | Keypoints, correspondences, PnP, pose conventions, reprojection error and outliers. | Known-pose synthetic validation. |
-| M23 ML pose estimation | Dataset generation, leakage prevention, pose representations, confidence, generalization and baseline comparison. | Reproducible training/evaluation artifacts. |
-| M24 Fault injection | Fault taxonomies, timing, persistence, isolation and deterministic scenario design. | Reproducible sensor/actuator fault cases. |
-| M25 Classical fault detection | Residuals, innovations, thresholds, covariance consistency, false alarms and latency. | Detection scorecard against injected faults. |
-| M26 ML anomaly detection | Imbalanced evaluation, temporal splits, precision/recall, calibration and classical-baseline comparison. | Honest comparative anomaly study. |
-| M27 Monte Carlo validation | Parameter distributions, seeded sampling, confidence intervals, aggregation and mission metrics. | Reproducible robustness report. |
-| M28 External dynamics validation | Reference alignment, initial-condition matching, model-fidelity differences and error attribution. | Independent comparison with external tools. |
-| M29 Final portfolio documentation | Traceability, reproducibility, technical communication, limitations and evidence-based claims. | A complete portfolio narrative backed by runnable results. |
-
-## Learning workflow for every stage
-
-Before coding, state the physical problem, why the model is needed, coordinate
-frames, units, state, inputs, outputs, governing equations, assumptions,
-numerical method, known failures, and verification strategy. Then implement a
-small change, compile it, run deterministic tests, inspect warnings and
-numerical evidence, fix project-caused failures, and update the documentation.
-
-Machine learning stages deliberately follow analytical mechanics, classical
-filtering/control, geometric vision, and deterministic fault detection. Their
-results must be compared with those baselines rather than assumed superior.
+| M09 Rigid-body attitude dynamics & quaternion kinematics | Rigid-body rotational motion, angular velocity in body frame, principal-axis inertia, Euler rigid-body equations, gyroscopic cross-coupling, body vs inertial angular momentum, rotational energy conservation, quaternion kinematics ($\dot{q} = \frac{1}{2} q \otimes [0, \boldsymbol{\omega}_B]$), step-boundary normalization, and 4th-order RK4 integration. | Lesson 009, `PrincipalInertia`, `RotationalState`, `euler_rotational_acceleration`, `quaternion_derivative`, `rotational_state_derivative`, `rk4_step_rotational`, `astradock_attitude_dynamics_demo`, 14 C++ unit tests (130 total), 5 attitude dynamics plots, independent Python oracle, and an M09 validation report. |
+| M10 Integrated 6-DOF spacecraft state | 6-DOF state aggregation (13 numerical components for 6 physical DOF), simultaneous translation & rotation propagation, physical decoupling under central two-body gravity, state derivative assembly, step-boundary quaternion reprojection, geodesic orientation error metric, fourth-order convergence. | Lesson 010, `SpacecraftState`, `SpacecraftParameters`, `ForceTorqueInput`, `spacecraft_state_derivative`, `rk4_step_spacecraft`, `propagate_spacecraft_fixed_step`, `quaternion_orientation_error_rad`, `astradock_6dof_demo`, 11 C++ unit tests (141 total), 4 6-DOF analysis plots, independent Python oracle, and an M10 validation report. |
+| M11 Spacecraft environment & force/torque models | Orbital perturbations, Earth oblateness ($J_2$) gravity, secular RAAN regression $\dot{\Omega}$ & apsidal precession $\dot{\omega}$, atmospheric drag with rotating atmosphere, exponential density, orbit decay & energy dissipation, third-body lunar/solar tidal gravity, gravity-gradient torque & pitch libration, modular configuration switches with disabled-effects bitwise regression. | Lesson 011, `j2_acceleration_eci`, `relative_atmospheric_velocity_eci`, `exponential_atmospheric_density`, `drag_acceleration_eci`, `third_body_acceleration_eci`, `gravity_gradient_torque_body`, `EnvironmentConfiguration`, `EnvironmentalParameters`, `propagate_spacecraft_environmental`, `astradock_environment_demo`, 9 C++ unit tests (150 total), 4 environmental perturbation plots, independent Python reference oracle, and an M11 validation report. |
+| M12 Spacecraft sensor simulation & measurement models | Truth vs measurement separation, specific force vs gravity in orbit ($f = a - g$), 6-axis IMU (gyroscope body rate + accelerometer specific force), GNSS receiver (ECI position & velocity), optical star tracker physical $SO(3)$ rotation perturbations, line-of-sight relative range, multi-rate asynchronous sampling, deterministic Gaussian RNG, failure dropout windows, truth non-interference contract. | Lesson 012, `DeterministicRng`, `SensorSchedule`, `DropoutWindow`, `ImuSensor`, `GnssSensor`, `StarTrackerSensor`, `RangeSensor`, `astradock_sensor_demo`, 9 C++ unit tests (159 total), 5 sensor telemetry and sampling figures, independent Python reference oracle, and an M12 validation report. |
+| M13 State estimation & Extended Kalman Filter | Multi-rate sensor fusion, 15-state error dynamics, joint covariance ($15 \times 15$), cross-coupling between attitude and translational uncertainty during thrust/drag, online accelerometer and gyro bias estimation, MEKF on $S^3$, double-cover sign alignment, covariance reset, scalar range updates, Joseph-form updates, and NEES/NIS consistency diagnostics. | Lesson 013 (`docs/lessons/013_state_estimation_and_navigation.md`), `IntegratedNavigationEkf`, `TranslationalEkf`, `AttitudeEkf`, range update, `astradock_integrated_navigation_demo`, 223 C++ unit tests (55 estimation tests), 8 analysis plots (Plots A–H), 5 independent Python reference oracles, and the consolidated M13 validation report (`docs/validation/m13_state_estimation_validation.md`). |
 
 ## Current checkpoint
 
-M00-M08 are implemented. The learner understands both orbital translational
-state and spacecraft attitude state, the mathematics of unit quaternions
-($q = [w, x, y, z]$), vector rotations ($v' = q \otimes v \otimes q^*$),
-Hamilton composition ($q_{A\_C} = q_{A\_B} \otimes q_{B\_C}$), Direction
-Cosine Matrix conversions (Shepperd algorithm), double-cover properties
-($\pm q$), and Euler-angle singularities (gimbal lock).
+M00–M13 are fully implemented and independently validated. The learner understands:
+- Realistic spacecraft sensor simulation and measurement modeling (IMU, GNSS, star tracker, range).
+- The distinction between truth, measurement, estimate, and command states.
+- Why 4-element additive quaternion filters fail on $S^3$, and how the 3-parameter local error state $\delta\boldsymbol{\theta}$ in the body frame resolves manifold constraints, rank deficiency, and $q \equiv -q$ double-cover ambiguities.
+- How attitude uncertainty becomes translational uncertainty through measured specific force: $\delta\mathbf{a}_I \approx -C_I^B [\hat{\mathbf{f}}_B]_\times \delta\boldsymbol{\theta} - C_I^B \delta\mathbf{b}_a$.
+- Why a unified $15 \times 15$ joint error covariance matrix is required instead of decoupled block-diagonal filters.
+- Dynamic estimation of both 3-axis accelerometer and rate-gyroscope biases from multi-rate sensor fixes.
+- Asynchronous sequential measurement updates (100 Hz IMU, 10 Hz star tracker, 10 Hz range, 1 Hz GNSS) using actual timestamp intervals.
+- Independent verification against pure Python oracles, analytical Jacobian finite-difference audits across all 5 blocks ($< 10^{-10}$), and Monte Carlo $\chi^2$ consistency tests. All 223 tests pass with zero compiler warnings and zero linter errors.
 
-The immediate boundary is **M09: Attitude Propagation & Quaternion Kinematics**.
-Do not implement angular velocity propagation, inertia, or torque ahead of M09.
+The immediate boundary is **M14: actuator dynamics & modeling** (reaction wheels, thrusters, momentum storage, and torque authority).
+Do not implement guidance or control ahead of M16+.
+

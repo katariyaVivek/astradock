@@ -77,22 +77,96 @@ physics behind an astrodynamics framework.
   - C++ attitude demonstration tool (`astradock_attitude_demo`) exporting telemetry to CSV.
   - Python 3D body frame, quaternion vs DCM consistency, and composition plots (`plot_attitude.py`).
   - Lesson 008 on Spacecraft Attitude & Quaternions and M08 Validation Report.
+- M09 Rigid-Body Attitude Dynamics & Quaternion Kinematics:
+  - `PrincipalInertia` representation ($I_{xx}, I_{yy}, I_{zz} > 0\,\text{kg}\cdot\text{m}^2$) with physical positive/finite validation.
+  - `RotationalState` 7-component state ($q, \boldsymbol{\omega}$) with ODE vector-space arithmetic operators.
+  - Euler's rigid-body equations in principal axes: $\dot{\boldsymbol{\omega}} = \mathbf{I}^{-1} [\boldsymbol{\tau} - \boldsymbol{\omega} \times (\mathbf{I}\boldsymbol{\omega})]$.
+  - Quaternion kinematics differential equation: $\dot{q} = \frac{1}{2} q \otimes [0, \boldsymbol{\omega}_B]$.
+  - Rotational invariants: rotational kinetic energy ($E_{rot} = \frac{1}{2}\boldsymbol{\omega}^T \mathbf{I}\boldsymbol{\omega}$) and inertial angular momentum ($\mathbf{H}_I = C_{\mathcal{I}\_\mathcal{B}}\mathbf{H}_B$).
+  - Step-boundary quaternion normalization policy bounding norm error to $< 10^{-15}$ without distorting RK4 4th-order convergence.
+  - C++ attitude dynamics demo tool (`astradock_attitude_dynamics_demo`) exporting telemetry for principal spin, constant torque, and asymmetric tumble.
+  - Independent Python reference oracle (`python/audit/independent_attitude_reference.py`) achieving sub-micro-residual cross-validation ($\Delta \omega < 10^{-12}\,\text{rad/s}$, $\Delta q < 10^{-12}$).
+  - Python analysis plots (`plot_attitude_dynamics.py`) showing rate evolution, quaternion trajectory, conservation invariants, analytical torque comparisons, and body vs inertial momentum distinction.
+  - Lesson 009 on Rigid-Body Attitude Dynamics & Quaternion Kinematics and M09 Validation Report.
+- M10 Integrated 6-DOF Spacecraft State:
+  - `SpacecraftState` 13-component composite state combining `CartesianState` (position, velocity in ECI) and `RotationalState` (quaternion, body rate).
+  - Physical 6-DOF vs 13-component numerical representation with unit-quaternion constraint ($\|q\| = 1$).
+  - `SpacecraftParameters` (gravitational parameter $\mu$, principal inertia moments $\mathbf{I}$).
+  - `ForceTorqueInput` with explicit frame definitions: force in **ECI** ($\mathbf{F}_{\mathcal{I}}$), torque in **BODY** ($\boldsymbol{\tau}_B$).
+  - Unified first-order derivative `spacecraft_state_derivative` reusing canonical M02 gravity and M09 rigid-body rotational dynamics.
+  - Geodesic orientation error metric `quaternion_orientation_error_rad` invariant to quaternion double cover.
+  - Fixed-step RK4 propagation engine `rk4_step_spacecraft` and `propagate_spacecraft_fixed_step` with post-step quaternion normalization.
+  - Canonical 500 km circular orbit + asymmetric tumbling simulation verifying simultaneous conservation of all 5 orbital and rotational invariants.
+  - Verified physical decoupling of translation and attitude in central two-body gravity.
+  - C++ 6-DOF demo tool (`astradock_6dof_demo`) exporting telemetry to CSV.
+  - Independent pure-Python reference oracle (`python/audit/independent_6dof_reference.py`) achieving sub-micrometre orbital and sub-micro-radian attitude cross-validation.
+  - Python analysis plots (`plot_6dof.py`) generating 3D orbit + body triads, translational telemetry, rotational invariants, and subsystem decoupling comparisons.
+  - Lesson 010 on Integrated 6-DOF Spacecraft State and M10 Validation Report.
+- M11 Spacecraft Environment & Force/Torque Models:
+  - M10 Numerical Entry Gate re-validation confirming rotational drift is pure $\mathcal{O}(\Delta t^4)$ truncation error.
+  - Earth Oblateness ($J_2$) gravity perturbation acceleration in ECI (`j2_acceleration_eci`), verifying secular RAAN regression $\dot{\Omega}$ and apsidal precession $\dot{\omega}$.
+  - Atmospheric Drag model with rotating atmosphere (`relative_atmospheric_velocity_eci`), exponential density (`exponential_atmospheric_density`), and drag acceleration (`drag_acceleration_eci`), verifying orbital decay and monotonic energy dissipation.
+  - Third-Body Lunar/Solar gravitational tidal acceleration (`third_body_acceleration_eci`) with direct and indirect tidal terms.
+  - Gravity-Gradient body torque (`gravity_gradient_torque_body`) on asymmetric spacecraft, verifying spherical symmetry nulls, principal alignment, and restorative pitch libration.
+  - Modular `EnvironmentConfiguration` switches with guaranteed bitwise regression to M10 when disabled.
+  - Unified environmental 6-DOF propagator `propagate_spacecraft_environmental`.
+  - C++ environment demo tool (`astradock_environment_demo`) exporting telemetry to CSV.
+  - Independent pure-Python reference oracle (`python/audit/independent_environment_reference.py`) achieving $< 10^{-17}\,\text{m/s}^2$ cross-validation.
+- M12 Spacecraft Sensor Simulation & Measurement Models:
+  - `DeterministicRng` wrapping 64-bit Mersenne Twister (`std::mt19937_64`) for reproducible Gaussian noise and uniform spherical vector sampling.
+  - `SensorSchedule` managing multi-rate asynchronous update schedules and `DropoutWindow` handling deterministic sensor failures (`valid = false`).
+  - 6-Axis IMU (`ImuSensor`, `ImuConfig`, `ImuMeasurement`) at 100 Hz:
+    - Gyroscope measuring body rates with constant bias and Gaussian noise.
+    - Accelerometer measuring specific force $\mathbf{f} = \mathbf{a} - \mathbf{g}$ in Spacecraft BODY frame, demonstrating near-zero free-fall contact acceleration in orbit and nonzero response to non-gravitational drag.
+  - Spaceborne GNSS Receiver (`GnssSensor`, `GnssConfig`, `GnssMeasurement`) at 1 Hz measuring absolute ECI position and velocity.
+  - Optical Star Tracker (`StarTrackerSensor`, `StarTrackerConfig`, `StarTrackerMeasurement`) at 10 Hz with proper physical $SO(3)$ rotation perturbations and exact unit norm preservation.
+  - Line-of-Sight Relative Range Sensor (`RangeSensor`, `RangeSensorConfig`, `RangeMeasurement`) at 10 Hz with translation invariance.
+  - Truth Non-Interference regression: active sensors leave simulation truth states 100% bitwise identical.
+  - C++ sensor demo tool (`astradock_sensor_demo`) exporting telemetry to CSV.
+  - Independent pure-Python reference oracle (`python/audit/independent_sensor_reference.py`) cross-verifying telemetry statistics and physical invariants.
+  - Python analysis plots (`plot_sensors.py`) generating IMU, GNSS, Star Tracker, Range, and multi-rate timeline figures.
+  - Lesson 012 on Sensor Simulation & Measurement Models and M12 Validation Report.
+- M13 Spacecraft State Estimation & Integrated Multi-Rate Navigation (COMPLETE):
+  - Consolidated navigation architecture uniting translational motion, attitude on $S^3$, and dynamic sensor biases.
+  - Unified 15-state estimation error representation: $\delta\mathbf{x} = [\delta\mathbf{r}^T, \delta\mathbf{v}^T, \delta\boldsymbol{\theta}^T, \delta\mathbf{b}_a^T, \delta\mathbf{b}_g^T]^T \in \mathbb{R}^{15}$.
+  - Analytical continuous error dynamics Jacobian $F \in \mathbb{R}^{15 \times 15}$ incorporating physical cross-coupling blocks:
+    - Attitude-to-velocity coupling: $\partial \delta\dot{\mathbf{v}} / \partial \delta\boldsymbol{\theta} = -C_I^B(\hat{\mathbf{q}}) [\hat{\mathbf{f}}_B]_\times$ (attitude errors rotate specific force into false inertial acceleration).
+    - Accelerometer-bias-to-velocity coupling: $\partial \delta\dot{\mathbf{v}} / \partial \delta\mathbf{b}_a = -C_I^B(\hat{\mathbf{q}})$.
+    - Analytical gravity gradient tensor: $G(\hat{\mathbf{r}}) = -\frac{\mu}{r^3}(I_3 - 3\hat{\mathbf{r}}\hat{\mathbf{r}}^T)$.
+  - Multiplicative Extended Kalman Filter (MEKF) on $S^3$ using body-frame error vector $\delta\boldsymbol{\theta}$, rate-gyro bias $\delta\mathbf{b}_g$, and antipodal sign alignment $\text{sign}(\mathbf{q}_m \cdot \hat{\mathbf{q}})$.
+  - Asynchronous multi-rate sequential updates (100 Hz IMU, 10 Hz star tracker, 10 Hz range, 1 Hz GNSS) using actual timestamp intervals ($\Delta t$).
+  - Joseph-form covariance updates on unified $15 \times 15$ covariance $P$ with first-order covariance reset $J_{\text{reset}}$.
+  - Scalar nonlinear relative range updates with analytical 1x15 line-of-sight Jacobian $H_\rho$ and coincident singularity rejection ($\rho < 10^{-6}$ m).
+  - C++ integrated navigation demo tool (`astradock_integrated_navigation_demo`) exporting multi-rate telemetry, sensor combination comparisons, and 100-seed Monte Carlo results to CSV.
+  - Independent pure-Python reference oracle (`python/audit/independent_integrated_navigation_reference.py`) verifying all operations and finite-difference Jacobians ($< 10^{-10}$).
+  - Comprehensive visualization suite (`plot_integrated_navigation.py`, Plots A–H in `artifacts/figures/`).
+  - Canonical Lesson 013 (`docs/lessons/013_state_estimation_and_navigation.md`) and consolidated validation report (`docs/validation/m13_state_estimation_validation.md`).
 
 ### Verification status
 
-M00-M08 were configured and built successfully with CMake, Ninja,
-and Clang 21.1.0 through Zig's C++ frontend. CTest reported all 116 registered
-test cases passing (74 from M01-M05, 9 Matrix3 tests, 8 Coordinate Frame tests,
-9 M01-M06 audit tests, 7 Classical Orbital Elements tests, 9 Quaternion/Attitude tests).
-Ruff passed with zero linter errors. All simulations, frame transformations,
-orbital element conversions, and quaternion attitude mathematics are deterministic.
+M00-M13 were configured, built, and verified with CMake, MSVC, and Clang C++20.
+CTest reports all **223 / 223 registered test cases passing (100%)** across 19 test suites:
+- 74 from M01-M05 (math, two-body, integrators, orbits, validation)
+- 9 Matrix3 tests
+- 8 Coordinate Frame tests
+- 9 M01-M06 audit tests
+- 7 Classical Orbital Elements tests
+- 9 Quaternion/Attitude tests
+- 14 Attitude Dynamics tests
+- 11 6-DOF tests
+- 9 Environment tests
+- 9 Sensor tests
+- 19 State Estimation (M13A) tests
+- 19 IMU-Aided Navigation (M13B) tests
+- 10 Attitude Error-State EKF (M13C) tests
+- 6 Nonlinear Range Update (M13C) tests
+- 10 Integrated 15-State Navigation (M13D) tests
+
+All simulations are bitwise deterministic given a seed. All independent Python oracles pass 100%. Ruff passed with zero linter errors.
 
 ### Planned
 
-Rigid body rotational dynamics, angular velocity integration ($\dot{q} = \frac{1}{2} q \otimes \omega$),
-inertia tensors, torque models, sensors, estimation, guidance, control, rendezvous/docking,
-vision, fault handling, machine learning, and Monte Carlo analysis remain planned.
-M09 — Attitude Propagation & Quaternion Kinematics is the next recommended milestone.
+Milestone M14 (actuator dynamics & modeling: reaction wheels and thrusters) is the next scheduled milestone in AstraDock. Actuators, guidance, control, rendezvous, docking vision, fault handling, machine learning, and mission-level Monte Carlo remain planned.
 
 ## Repository layout
 
@@ -100,19 +174,23 @@ M09 — Attitude Propagation & Quaternion Kinematics is the next recommended mil
 cpp/math/             C++ mathematical primitives (Vector3, Matrix3, Quaternion, EulerAngles, angle, constants)
 cpp/dynamics/         instantaneous physical dynamics models
 cpp/numerics/         reusable fixed-step ODE integration primitives
-cpp/orbit/            Cartesian orbital state, derivative, diagnostics, classical elements, and validation tools
-cpp/frames/           coordinate frame bases, LVLH, Direction Cosine Matrices, and transformations
-cpp/attitude/         spacecraft attitude state representation (pure orientation)
-tools/                deterministic C++ demonstration, validation, frame, elements, and attitude demo executables
+cpp/orbit/            orbital Cartesian states, diagnostics, classical elements, and perifocal frame
+cpp/frames/           orthonormal frame bases, LVLH frames, and Direction Cosine Matrices
+cpp/attitude/         attitude quaternions, principal inertia, rotational states, and rigid-body dynamics
+cpp/spacecraft/       composite 6-DOF spacecraft states, parameters, force/torque inputs, and unified propagator
+cpp/environment/      orbital perturbations (J2, atmospheric drag, third-body gravity, gravity gradient)
+cpp/sensors/          sensor simulation models (IMU, GNSS, Star Tracker, Range, DeterministicRng, schedules)
+cpp/estimation/       Kalman filter algebra, gravity Jacobian, translational EKF (GNSS-only and IMU-aided prediction)
+tools/                deterministic C++ demonstration, validation, frame, elements, attitude, dynamics, 6-DOF, environment, sensor, EKF, and IMU-EKF demo executables
 python/analysis/      CSV-driven plotting, analysis, and validation plots
-python/audit/         independent pure-Python astrodynamics, orbital elements, and quaternion audit oracles
-tests/cpp/            deterministic C++ unit, validation, coordinate frame, audit, elements, and quaternion tests
+python/audit/         independent pure-Python astrodynamics, orbital elements, quaternion, attitude, 6-DOF, environment, sensor, EKF, and IMU-EKF audit oracles
+tests/cpp/            deterministic C++ Catch2 unit, validation, coordinate frame, audit, elements, quaternion, dynamics, 6-DOF, environment, sensor, and estimation tests
 docs/lessons/         engineering lessons that precede implementations
 docs/validation/      numerical validation reports and verification matrices
 docs/architecture.md  current and planned system architecture
 docs/curriculum.md    learning outcomes by milestone
 ROADMAP.md             sequential project milestones
-pyproject.toml         future Python analysis-tool configuration
+pyproject.toml         Python analysis and linting configuration
 ```
 
 ## Build and test

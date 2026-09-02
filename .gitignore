@@ -4,6 +4,7 @@ cmake-build-*/
 CMakeUserPresets.json
 compile_commands.json
 artifacts/
+data/
 
 # Python caches and local environments
 __pycache__/

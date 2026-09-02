@@ -34,20 +34,29 @@ CartesianState -------->+--> two_body_state_derivative
      |        +--> LVLH FrameBasis & DCMs (AstraDock::frames)
      |        +--> ClassicalOrbitalElements & Perifocal PQW (AstraDock::orbit)
      |        +--> AttitudeState & Quaternion Rotations (AstraDock::attitude)
+     |        +--> PrincipalInertia, RotationalState & Euler Dynamics (AstraDock::attitude)
      |
      v
-astradock_orbit_demo --------> deterministic trajectory CSV
-astradock_validation_demo ---> convergence CSV + QA
-astradock_frame_demo --------> coordinate frames CSV + QA
-astradock_elements_demo -----> orbital elements propagation CSV + QA
-astradock_attitude_demo -----> attitude rotation telemetry CSV + QA
-                                    |
-                                    v
-Python analysis            plot_orbit.py -----------> trajectory PNG figures
-                           plot_validation.py ------> convergence plots
-                           plot_frames.py ----------> coordinate frame plots
-                           plot_orbital_elements.py -> 3D orbital geometry & element evolution
-                           plot_attitude.py --------> 3D body frame, quaternion/DCM & composition
+`astradock_orbit_demo -------------> deterministic trajectory CSV
+astradock_validation_demo --------> convergence CSV + QA
+astradock_frame_demo -------------> coordinate frames CSV + QA
+astradock_elements_demo ----------> orbital elements propagation CSV + QA
+astradock_attitude_demo ----------> attitude rotation telemetry CSV + QA
+astradock_attitude_dynamics_demo -> rigid-body dynamics & kinematics CSV + QA
+astradock_6dof_demo --------------> integrated 6-DOF telemetry CSV + QA
+astradock_environment_demo -------> environmental perturbation CSV + QA
+astradock_sensor_demo ------------> multi-rate sensor telemetry CSV + QA
+astradock_ekf_demo ---------------> estimator truth/measurement/estimate CSV,
+                                    Monte Carlo summary CSV + QA
+                                        |
+                                        v
+Python analysis            plot_orbit.py -------------> trajectory PNG figures
+                           plot_validation.py --------> convergence plots
+                           plot_frames.py ------------> coordinate frame plots
+                           plot_orbital_elements.py --> 3D orbital geometry & element evolution
+                           plot_attitude.py ----------> 3D body frame, quaternion/DCM & composition
+                           plot_attitude_dynamics.py -> rates, quaternions, energy/momentum invariants
+                           plot_estimation.py ---------> truth vs GNSS vs estimate, covariance, innovation/NIS
 
 Frame & Attitude Hierarchy:
 ECI Frame (Inertial Reference)
@@ -56,16 +65,16 @@ ECI Frame (Inertial Reference)
  │
  └── LVLH Frame (Orbital Local)
        │
-       └── Spacecraft Attitude (Quaternion q_ECI_Body or q_LVLH_Body)
+       └── Spacecraft Attitude & Rotational Dynamics
               │
               ▼
-          SPACECRAFT BODY FRAME (Static orientation representation; dynamics scheduled for M09)
+          SPACECRAFT BODY FRAME (Principal axes: I = diag(Ixx, Iyy, Izz), omega_B, tau_B, q_ECI_Body)
 ```
 
 `AstraDock::math`, `AstraDock::dynamics`, `AstraDock::numerics`, `AstraDock::orbit`,
 `AstraDock::frames`, and `AstraDock::attitude` are header-only CMake interface targets requiring C++20.
-Orbit depends on dynamics, numerics, and math; dynamics, numerics, frames, and attitude each depend on
-math. Demo executables link the C++ core and export plain CSV. CTest owns test execution,
+Orbit depends on dynamics, numerics, and math; dynamics, frames, and attitude each depend on
+math and numerics. Demo executables link the C++ core and export plain CSV. CTest owns test execution,
 while Catch2 provides test cases and assertions.
 
 | Area | Current responsibility | Current non-responsibility |
@@ -75,10 +84,14 @@ while Catch2 provides test cases and assertions.
 | `cpp/numerics` | Generic Euler/RK4 steps plus deterministic signed fixed-step propagation and endpoint policy | Physical derivative assembly, adaptive steps, events |
 | `cpp/orbit` | Cartesian orbital state, two-body derivative assembly, circular-orbit helpers, invariants, validation diagnostics, `ClassicalOrbitalElements`, perifocal coordinate frame ($PQW$), and bidirectional state $\leftrightarrow$ elements conversions | Perturbations ($J_2$, drag), equinoctial elements |
 | `cpp/frames` | Orthonormal `FrameBasis`, LVLH basis construction, Direction Cosine Matrices (`dcm_lvlh_from_eci`, `dcm_eci_from_lvlh`), vector coordinate transformations, and degenerate-state rejection | ECEF, Earth rotation, attitude dynamics |
-| `cpp/attitude` | `AttitudeState` representation (spatial orientation of spacecraft body frame via unit quaternion) | Quaternion time integration, angular rates, inertia tensor, torques |
-| `tools` | Nominal scenarios, quantitative summaries, deterministic CSV export, validation sweeps, frame demonstrations, elements demos, and attitude demos | General scenario or telemetry framework |
-| `python/analysis` | Plotting, display-unit conversion, convergence analysis, frame visualizations, 3D orbital geometry, and 3D attitude figures from authoritative C++ CSV | Authority over physics or integration |
-| `tests/cpp` | Deterministic analytical, invariant, ODE convergence, endpoint, orbit scenario, regression, matrix algebra, coordinate frame, audit property, classical element, and quaternion attitude tests | Higher-fidelity external reference validation |
+| `cpp/attitude` | `AttitudeState`, `PrincipalInertia`, `RotationalState`, Euler's rigid-body equations, quaternion kinematics, rotational kinetic energy, body/inertial angular momentum, and RK4 step with unit-norm reprojection | Actuators (reaction wheels, thrusters), sensors, control, perturbations |
+| `cpp/spacecraft` | Composite 13-component `SpacecraftState` (Cartesian translational + rotational), `SpacecraftParameters`, `ForceTorqueInput`, unified `spacecraft_state_derivative`, fixed-step RK4 propagation, and geodesic `quaternion_orientation_error_rad` metric | Cross-coupled environmental perturbations, actuators, control |
+| `cpp/environment` | Environmental perturbations: Earth oblateness ($J_2$), atmospheric drag with rotating atmosphere, third-body lunar/solar tidal gravity, gravity-gradient body torque, `EnvironmentConfiguration`, `EnvironmentalParameters`, and environmental 6-DOF propagation | Actuators, sensors, active guidance and control |
+| `cpp/sensors` | Sensor simulation layer: `DeterministicRng`, `SensorSchedule`, `DropoutWindow`, 6-axis IMU (gyroscope body rate + accelerometer specific force $f = a - g$), GNSS receiver (ECI pos/vel), Star Tracker ($SO(3)$ attitude quaternion perturbation), and line-of-sight relative Range Sensor | State estimation, EKF/UKF, sensor fusion, active guidance |
+| `cpp/estimation` | Navigation layer: fixed-size `math::Matrix<R,C>` with Cholesky SPD solves, generic Joseph-form updates with NIS/NEES diagnostics, analytical gravity Jacobian with finite-difference audits, first-order discrete transition $\Phi \approx I + F\Delta t$, coupled process noise $Q$, GNSS measurement model ($H_{\text{GNSS}}$), star tracker measurement model ($H_{\text{ST}}$ with double-cover alignment), relative range measurement model ($H_{\text{range}}$ with singularity guard), 6-state `TranslationalEkf`, 6-state `AttitudeEkf`, IMU-aided specific-force dead reckoning, and the unified 15-state `IntegratedNavigationEkf` ($\delta\mathbf{x} = [\delta\mathbf{r}^T, \delta\mathbf{v}^T, \delta\boldsymbol{\theta}^T, \delta\mathbf{b}_a^T, \delta\mathbf{b}_g^T]^T \in \mathbb{R}^{15}$) with full cross-covariance coupling (attitude/accel-bias to velocity) and first-order covariance reset $J_{\text{reset}}$ | Actuators (M14), guidance, control |
+| `tools` | Nominal scenarios, quantitative summaries, deterministic CSV export, validation sweeps, frame demonstrations, elements demos, attitude demos, attitude dynamics demos, 6-DOF integrated demos, environmental perturbation demos, multi-rate sensor demos, EKF demos, IMU-EKF demos, attitude/range EKF demos, and integrated navigation filter demos | General scenario or telemetry framework |
+| `python/analysis` | Plotting, display-unit conversion, convergence analysis, frame visualizations, 3D orbital geometry, 3D attitude figures, attitude dynamics invariants, 3D 6-DOF orbit + attitude triad figures, environmental perturbation figures, sensor telemetry, EKF telemetry, IMU-EKF plots, attitude/range EKF plots, and 15-state integrated navigation plots (Plots A–H) from authoritative C++ CSV | Authority over physics or integration |
+| `tests/cpp` | Deterministic analytical, invariant, ODE convergence, endpoint, orbit scenario, regression, matrix algebra, coordinate frame, audit property, classical element, quaternion attitude, attitude dynamics, 6-DOF integrated, environmental perturbation, and sensor measurement tests | Higher-fidelity external reference validation |
 | `docs` | Architecture, curriculum, concept lessons, and numerical validation reports | Claims of unimplemented behavior |
 | `pyproject.toml` | Python 3.12+ tooling and optional Matplotlib analysis dependency | Python simulation physics |
 
