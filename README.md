@@ -141,11 +141,67 @@ physics behind an astrodynamics framework.
   - Independent pure-Python reference oracle (`python/audit/independent_integrated_navigation_reference.py`) verifying all operations and finite-difference Jacobians ($< 10^{-10}$).
   - Comprehensive visualization suite (`plot_integrated_navigation.py`, Plots A–H in `artifacts/figures/`).
   - Canonical Lesson 013 (`docs/lessons/013_state_estimation_and_navigation.md`) and consolidated validation report (`docs/validation/m13_state_estimation_validation.md`).
+- M14 Spacecraft Actuator Dynamics & Modeling (COMPLETE):
+  - Reaction-wheel momentum exchange ($\tau_{bus} = -axis\,\tau_{motor}$), wheel speed integration, motor torque/speed saturation with explicit authority-loss flags, first-order motor lag.
+  - Thruster force/torque geometry ($F_B = dir\,T$, $\tau_B = r_B \times F_B$), ECI force rotation, propellant mass flow ($\dot m = -T/(I_{sp} g_0)$) with dry-mass floor.
+  - Wheel/thruster assembly aggregation, `astradock_actuator_demo`, independent Python actuator oracle, Lesson 014, and the M14 validation report.
+- M15 Rotating-Frame Kinematics & Relative Orbital Dynamics (COMPLETE):
+  - LVLH angular velocity ($\omega = h/r^2$, exact off-circular), angular acceleration, transport-theorem derivative splits (Coriolis/centrifugal/Euler).
+  - Target/chaser LVLH relative state with exact ECI round trip; rotating-frame velocity distinguished from projected inertial velocity.
+  - Clohessy-Wiltshire closed-form prediction with a quantified breakdown sweep (error proportional to separation squared; sub-percent to ~1 km, invalid beyond ~10 km).
+  - `astradock_relative_dynamics_demo`, independent Python relative oracle, Lesson 015, and the M15 validation report.
+- M16 Guidance & Control Foundations (COMPLETE):
+  - Quaternion-error PD with double-cover alignment, geodesic error metric, rate damping as its zero-error special case, zeta/settle-time gain suggestion.
+  - CW-feedforward relative translation PD; closed-form double-integrator LQR with Riccati residuals and Hurwitz checks.
+  - Desired/achieved saturation accounting; detumble + slew + station-keeping demos.
+  - `astradock_control_demo`, independent Python control oracle, Lesson 016, and the M16 validation report.
+- M17 Integrated Closed-Loop GNC (COMPLETE):
+  - Estimates-only attitude loop: estimate-based PD tick, reference timeline, wheel-assembly actuation into 6-DOF truth, MEKF-in-loop convergence.
+  - Hold settles 80.8 s / 0.038 deg; 60-deg maneuver settles +31.6 s / 0.042 deg; 100/100 Monte Carlo converge.
+  - Static declaration audit pins the estimates-only seam; scored telemetry columns explicitly named.
+  - `astradock_closed_loop_demo`, independent Python closed-loop oracle, Lesson 017, and the M17 validation report.
+- M18 Rendezvous & Proximity Operations (COMPLETE):
+  - Waypoint sequencing with closing-speed profiles; keep-out/corridor/speed predicates on estimated states.
+  - Thrust-aware navigation predict + epoch-aligned ECI scenarios (two scenario-sequencing bugs root-caused during development).
+  - CW sweeps (nominal, 5% under-burn, corridor stress) and ECI truth runs (± dropout) all complete; est-vs-scored gap under 3.6 m.
+  - `astradock_rendezvous_demo`, independent Python rendezvous oracle, Lesson 018, and the M18 validation report.
+- M19 Autonomous Docking (COMPLETE):
+  - Body-frame port geometry, separation-positive contact, all-criteria acceptance with 5 s latching, deterministic abort codes.
+  - Nominal/fast/lateral/dropout latch; 20-deg tilt aborts on tick 1; docking-grade (0.05 m) sensing requirement documented.
+  - `astradock_docking_demo`, independent Python docking oracle, Lesson 019, and the M19 validation report.
+- M20 Fault Detection, Isolation & Recovery (COMPLETE):
+  - Deterministic fault injection (dropout, bias jump, stuck, noise burst, degradation) with NIS + M-of-N detection.
+  - Worst-margin isolation with honest ambiguity; exclusion/coast/safe-mode policy; 2 s bias latency, 0 false alarms in 300 s.
+  - `astradock_fdir_demo`, independent Python FDIR oracle, Lesson 020, and the M20 validation report.
+- M21 Mission Simulation & Monte Carlo Framework (COMPLETE):
+  - Config-as-data scenarios with FNV-1a run identity (scenario, seed, hash, version) stamped on every CSV.
+  - Phase timelines, per-run seed streams, Welford + percentile summaries, outcome classification, 4 regression missions.
+  - All 4 missions x 20 runs PASS; `astradock_mission_demo`, independent Python mission oracle, Lesson 021, and the M21 validation report.
+- M22 Computer Vision & Optical Navigation (COMPLETE):
+  - Documented pinhole camera (4 frames, distortion, bearing inversion) + 5-point fiducial plate.
+  - Huber-LM PnP with analytic Jacobians, inlier gating, honest invalid reporting; exact noiseless recovery.
+  - Depth-dilution lever + planar-ambiguity standoff rules derived from measured behavior.
+  - `astradock_vision_demo`, independent Python vision oracle, Lesson 022, and the M22 validation report.
+- M23 Machine Learning for Space Systems (COMPLETE):
+  - Seed-family-split NIS-window dataset (2880/960/960); M20 rule + logreg baselines before any challenger.
+  - kNN selected on VAL: held-out F1 0.425 vs rule 0.025; 20/20 scenarios detected at 3.5 s mean latency.
+  - Advisory-only safety case (agreement 0.846; ML never commands); trivial-50 m experiment discarded for overlapping 10 m design.
+  - `astradock_ml_dataset_demo`, `train_anomaly_classifier.py`, Lesson 023, and the M23 validation report.
+- M24 High-Fidelity Environment / Time / Ephemeris (COMPLETE):
+  - ECI/ECEF rotation (sidereal-day periodic), JD time discipline, Bowring WGS-84 geodetic, J2–J4 total gradient, Moon/Sun ephemeris.
+  - J2-only reproduces legacy + central to 1e-9; J3 pole-push hand value; educational atmosphere retained with validity box.
+  - M11 demo byte-identical; `astradock_high_fidelity_demo`, independent Python fidelity oracle, Lesson 024, and the M24 validation report.
+- M25 Full-System Verification & Capstone Mission (COMPLETE — PROJECT CLOSE):
+  - 9-phase end-to-end mission on verified parts: nominal converges (255 m final, 3.0 m/s delta-v, dropout ridden through).
+  - Isolation audit (6 headers) + interface audit (6 boundary classes) + 11-row frozen benchmark table.
+  - 100/100 Monte Carlo (p50 255 m, p95 256 m); reproducibility + performance recorded.
+  - Old M26–M30 placeholders marked SUPERSEDED with traceability in ROADMAP.
+  - `astradock_capstone_demo`, Lesson 025, and the M25 validation report.
 
 ### Verification status
 
-M00-M13 were configured, built, and verified with CMake, MSVC, and Clang C++20.
-CTest reports all **223 / 223 registered test cases passing (100%)** across 19 test suites:
+M00-M25 were configured, built, and verified with CMake, MSVC, and Clang C++20.
+CTest reports all **311 / 311 registered test cases passing (100%)** across 30 test suites:
 - 74 from M01-M05 (math, two-body, integrators, orbits, validation)
 - 9 Matrix3 tests
 - 8 Coordinate Frame tests
@@ -161,30 +217,50 @@ CTest reports all **223 / 223 registered test cases passing (100%)** across 19 t
 - 10 Attitude Error-State EKF (M13C) tests
 - 6 Nonlinear Range Update (M13C) tests
 - 10 Integrated 15-State Navigation (M13D) tests
+- 11 Actuator Dynamics & Modeling (M14) tests
+- 11 Rotating-Frame Kinematics & Relative Dynamics (M15) tests
+- 11 Guidance & Control Foundations (M16) tests
+- 7 Integrated Closed-Loop GNC (M17) tests
+- 7 Rendezvous & Proximity Operations (M18) tests
+- 7 Autonomous Docking (M19) tests
+- 7 Fault Detection, Isolation & Recovery (M20) tests
+- 6 Mission Simulation & Monte Carlo Framework (M21) tests
+- 11 Computer Vision & Optical Navigation (M22) tests
+- 7 High-Fidelity Environment / Time / Ephemeris (M24) tests
+- 3 Full-System Verification & Capstone (M25) tests
 
 All simulations are bitwise deterministic given a seed. All independent Python oracles pass 100%. Ruff passed with zero linter errors.
 
 ### Planned
 
-Milestone M14 (actuator dynamics & modeling: reaction wheels and thrusters) is the next scheduled milestone in AstraDock. Actuators, guidance, control, rendezvous, docking vision, fault handling, machine learning, and mission-level Monte Carlo remain planned.
+AstraDock M14–M25 is complete: validated orbital mechanics, frames, elements, quaternions, rigid-body dynamics, environments, sensors, navigation, actuators, relative dynamics, guidance, control, closed-loop GNC, rendezvous, docking, FDIR, scenarios, optical navigation, responsible ML, high-fidelity upgrades, and an end-to-end capstone — with documented evidence for every claim. See ROADMAP.md and docs/validation/.
 
 ## Repository layout
 
 ```text
 cpp/math/             C++ mathematical primitives (Vector3, Matrix3, Quaternion, EulerAngles, angle, constants)
+cpp/actuators/        reaction wheels, thrusters, propellant, and actuator assembly
 cpp/dynamics/         instantaneous physical dynamics models
 cpp/numerics/         reusable fixed-step ODE integration primitives
 cpp/orbit/            orbital Cartesian states, diagnostics, classical elements, and perifocal frame
-cpp/frames/           orthonormal frame bases, LVLH frames, and Direction Cosine Matrices
+cpp/frames/           orthonormal frame bases, LVLH frames, angular velocity/transport theorem, and Direction Cosine Matrices
+cpp/relative/         target/chaser LVLH relative states and Clohessy-Wiltshire prediction
+cpp/control/          quaternion-error PD, relative translation PD, double-integrator LQR, saturation accounting
+cpp/gnc/              estimates-only attitude loop seam, reference timeline, latching metrics
+cpp/rendezvous/       waypoint sequencing, closing-speed profiles, safety predicates
+cpp/docking/           body-frame port geometry, axial penalty contact, acceptance + abort
+cpp/fdir/             deterministic fault injection, NIS/residual monitors, isolation + recovery policy
+cpp/mission/         scenario configs, run identity, phase timelines, Monte Carlo summaries
+cpp/vision/           pinhole camera, fiducials, Huber-LM PnP pose estimation
 cpp/attitude/         attitude quaternions, principal inertia, rotational states, and rigid-body dynamics
 cpp/spacecraft/       composite 6-DOF spacecraft states, parameters, force/torque inputs, and unified propagator
-cpp/environment/      orbital perturbations (J2, atmospheric drag, third-body gravity, gravity gradient)
+cpp/environment/      point-mass, J2, drag, third-body, gravity-gradient + high-fidelity (rotation, geodetic, J3/J4, ephemeris)
 cpp/sensors/          sensor simulation models (IMU, GNSS, Star Tracker, Range, DeterministicRng, schedules)
 cpp/estimation/       Kalman filter algebra, gravity Jacobian, translational EKF (GNSS-only and IMU-aided prediction)
 tools/                deterministic C++ demonstration, validation, frame, elements, attitude, dynamics, 6-DOF, environment, sensor, EKF, and IMU-EKF demo executables
-python/analysis/      CSV-driven plotting, analysis, and validation plots
+python/analysis/      CSV-driven plotting, analysis, validation plots, and the M23 ML protocol (leakage audit, baselines, selection, advisory table)
 python/audit/         independent pure-Python astrodynamics, orbital elements, quaternion, attitude, 6-DOF, environment, sensor, EKF, and IMU-EKF audit oracles
-tests/cpp/            deterministic C++ Catch2 unit, validation, coordinate frame, audit, elements, quaternion, dynamics, 6-DOF, environment, sensor, and estimation tests
+tests/cpp/            deterministic C++ Catch2 unit, validation, coordinate frame, audit, elements, quaternion, dynamics, 6-DOF, environment, sensor, estimation, actuator, relative-dynamics, control, closed-loop, rendezvous, docking, FDIR, mission, and vision tests
 docs/lessons/         engineering lessons that precede implementations
 docs/validation/      numerical validation reports and verification matrices
 docs/architecture.md  current and planned system architecture
